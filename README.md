@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Security Fixed</title>
+    <title>Soulkin Paint - Unique Username</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -128,13 +128,36 @@
         let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [], scale = 1.0, initialDist = 0, isLocked = false, onlineUsers = [];
 
         window.onload = () => { if(myName) loginSuccess(myName); };
+        
+        // アカウント作成・ログインロジックの修正
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
             if(!n || !p) return;
-            const s = await getDocs(query(collection(db,"users"),where("name","==",n),where("pass","==",p)));
-            if(s.empty) { await addDoc(collection(db,"users"), {name:n, pass:p}); }
-            localStorage.setItem('soulkin_user', n); loginSuccess(n);
+
+            // まず名前が一致するユーザーを検索
+            const nameCheck = await getDocs(query(collection(db,"users"), where("name","==",n)));
+            
+            if(nameCheck.empty) {
+                // 名前が存在しない場合は新規登録
+                await addDoc(collection(db,"users"), {name:n, pass:p});
+                localStorage.setItem('soulkin_user', n); 
+                loginSuccess(n);
+            } else {
+                // 名前が存在する場合、パスワードが一致するか確認
+                let matched = false;
+                nameCheck.forEach(doc => {
+                    if(doc.data().pass === p) matched = true;
+                });
+
+                if(matched) {
+                    localStorage.setItem('soulkin_user', n); 
+                    loginSuccess(n);
+                } else {
+                    alert("その名前は既に使われているか、パスワードが違います。");
+                }
+            }
         };
+
         function loginSuccess(n) { myName = n; document.getElementById('user-label').innerText = n; document.getElementById('auth-page').classList.add('hidden'); document.getElementById('lobby-page').classList.remove('hidden'); loadRooms(); }
         document.getElementById('btn-logout').onclick = () => { localStorage.removeItem('soulkin_user'); location.reload(); };
 
@@ -152,12 +175,10 @@
             });
         }
         
-        // パスワードチェックの修正
         window.tryJoin = (id, n, w, h, host, jp) => { 
-            // 部屋にパスワードが設定されている場合（空文字でない場合）
             if (jp && jp.trim() !== "") {
                 const input = prompt("この部屋はパスワードが必要です：");
-                if (input === null) return; // キャンセルされたら何もしない
+                if (input === null) return;
                 if (input !== jp) return alert("パスワードが違います");
             }
             window.joinRoom(id, n, w, h, host); 
