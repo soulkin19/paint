@@ -163,42 +163,13 @@
 
         function loadRooms() {
             onSnapshot(query(collection(db,"rooms"), orderBy("createdAt","desc")), snap => {
-                const list = document.getElementById('room-list'); 
-                list.innerHTML = "<h3>部屋一覧</h3>";
+                const list = document.getElementById('room-list'); list.innerHTML = "<h3>部屋一覧</h3>";
                 snap.forEach(d => {
                     const r = d.data();
-                    const div = document.createElement('div'); 
-                    div.className = "room-card";
-                    
-                    // --- 修正：innerHTMLを避け、textContentで安全にテキストを挿入 ---
-                    const infoDiv = document.createElement('div');
-                    const titleB = document.createElement('b');
-                    titleB.textContent = ((r.joinPass && r.joinPass.trim() !== "") ? '🔒 ' : '') + r.name;
-                    infoDiv.appendChild(titleB);
-                    infoDiv.appendChild(document.createElement('break')); // 改行用
-                    infoDiv.innerHTML += `<br><small>${r.w}x${r.h}</small>`; // 数値なので安全
-
-                    const btnWrap = document.createElement('div');
-                    btnWrap.style.display = "flex";
-                    btnWrap.style.gap = "8px";
-                    
-                    
-                    const joinBtn = document.createElement('button');
-                    joinBtn.className = "btn-outline";
-                    joinBtn.textContent = "入室";
-                    joinBtn.onclick = () => window.tryJoin(d.id, r.name, r.w, r.h, r.host, r.joinPass || "");
-
-                    const delBtn = document.createElement('button');
-                    delBtn.style.cssText = "color:red; border:none; background:none; font-size:20px;";
-                    delBtn.textContent = "🗑️";
-                    delBtn.onclick = () => window.deleteRoom(d.id, r.delPass);
-
-                    btnWrap.appendChild(joinBtn);
-                    btnWrap.appendChild(delBtn);
-                    div.appendChild(infoDiv);
-                    div.appendChild(btnWrap);
-                    // ------------------------------------------------------
-                    
+                    const div = document.createElement('div'); div.className = "room-card";
+                    div.innerHTML = `<div><b>${(r.joinPass && r.joinPass.trim() !== "") ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
+                        <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass || ""}')">入室</button>
+                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="color:red; border:none; background:none; font-size:20px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
