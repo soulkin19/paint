@@ -106,15 +106,14 @@
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
         let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], scale = 1.0, posX = 0, posY = 0;
-        const MASTER_HASH = "8153f3e795247345f1710976537b06822452377c8e967520e7f722c2a05d894a";
-        async function getHash(t) { const m = new TextEncoder().encode(t); const b = await crypto.subtle.digest('SHA-256', m); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''); }
+        const M_KEY = "delta437";
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
             if(!n || !p) return;
             const qU = await getDocs(query(collection(db,"users"), where("name","==",n)));
             if(qU.empty) { await addDoc(collection(db,"users"), {name:n, pass:p}); loginSuccess(n); }
-            else { let m=false; qU.forEach(d=>{if(d.data().pass===p)m=true;}); if(m) loginSuccess(n); else alert("パスワード不一致"); }
+            else { let m=false; qU.forEach(d=>{if(d.data().pass===p)m=true;}); if(m) loginSuccess(n); else alert("パス不一致"); }
         };
         function loginSuccess(n) { myName=n; localStorage.setItem('soulkin_user',n); document.getElementById('user-label').innerText=n; document.getElementById('auth-page').classList.add('hidden'); document.getElementById('lobby-page').classList.remove('hidden'); loadRooms(); }
         function loadRooms() {
@@ -131,14 +130,18 @@
             });
         }
         window.adminDelete = async (id, correct) => {
-            const input = prompt("削除パスワードまたはマスターキー:");
-            if(!input) return;
-            const h = await getHash(input);
-            if(input === correct || h === MASTER_HASH) {
+            const input = prompt("パスワードまたはマスターキー:");
+            if(input === correct || input === M_KEY) {
                 if(confirm("部屋を消しますか？")) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); remove(ref(rtdb,`rooms/${id}`)); }
-            } else alert("無効");
+            } else if(input) alert("無効");
         };
-        window.tryJoin = (id,n,w,h,host,jp) => { if(jp && prompt("パスワード")!==jp) return alert("不一致"); window.joinRoom(id,n,w,h,host); };
+        window.tryJoin = (id,n,w,h,host,jp) => {
+            if(jp) {
+                const input = prompt("入室パスワード:");
+                if(input !== jp && input !== M_KEY) return alert("パスワードが違います");
+            }
+            window.joinRoom(id,n,w,h,host);
+        };
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
             let w = Math.min(2000, parseInt(document.getElementById('room-w').value)||400), h = Math.min(2000, parseInt(document.getElementById('room-h').value)||600);
