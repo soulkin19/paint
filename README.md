@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Canvas 2000 & Smooth Zoom</title>
+    <title>Soulkin Paint - Admin & Emoji</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
@@ -17,11 +17,15 @@
         #room-list { width: 90%; max-width: 450px; padding-bottom: 50px; }
         .room-card { background: white; margin-bottom: 12px; padding: 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
 
-        #canvas-wrap { width: 100%; height: 100%; overflow: hidden; background: #cbd5e1; flex-grow: 1; position: relative; touch-action: none; cursor: crosshair; }
+        #canvas-wrap { width: 100%; height: 100%; overflow: hidden; background: #cbd5e1; flex-grow: 1; position: relative; touch-action: none; }
         #canvas-container { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; display: flex; justify-content: center; align-items: center; }
         #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.2); display: block; }
         
-        #lock-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); display: none; z-index: 400; cursor: not-allowed; align-items: center; justify-content: center; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); font-size: 20px; pointer-events: all; }
+        /* リアクション表示用 */
+        #reaction-container { position: absolute; inset: 0; pointer-events: none; z-index: 500; }
+        .reaction-bubble { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); background: white; padding: 12px 24px; border-radius: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); font-size: 32px; animation: floatUp 2.5s ease-out forwards; display: flex; flex-direction: column; align-items: center; border: 2px solid var(--primary); }
+        .reaction-user { font-size: 12px; color: var(--primary); font-weight: bold; margin-top: 4px; }
+        @keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 20px); } 15% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -120px); } }
 
         .toolbar-wrapper { width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
         .toolbar-scroll { display: flex; overflow-x: auto; padding: 0 15px; gap: 10px; align-items: center; }
@@ -76,30 +80,34 @@
                 <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px; cursor:pointer;">
                     👤 <span id="online-count">0</span>
                 </small> 
-                <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;" title="クリックでリセット">1.0x</span>
+                <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span>
             </div>
             <div style="display:flex; gap:8px;"><button id="btn-save" class="btn-outline">💾</button><button id="btn-leave" class="btn-outline">退室</button></div>
         </div>
 
         <div id="canvas-wrap">
-            <div id="lock-overlay">🔒 現在ロックされています</div>
             <div id="canvas-container"><canvas id="canvas"></canvas></div>
         </div>
 
         <div class="toolbar-wrapper">
-            <div id="stamp-menu" class="hidden" style="position: absolute; bottom: 75px; left: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; gap: 8px; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 1000;">
-                <span class="stamp-option" style="font-size:28px; cursor:pointer;">👍</span><span class="stamp-option" style="font-size:28px; cursor:pointer;">😊</span><span class="stamp-option" style="font-size:28px; cursor:pointer;">❤️</span><span class="stamp-option" style="font-size:28px; cursor:pointer;">😲</span><span class="stamp-option" style="font-size:28px; cursor:pointer;">🎨</span><span class="stamp-option" style="font-size:28px; cursor:pointer;">🙏</span>
+            <div id="stamp-menu" class="hidden" style="position: absolute; bottom: 85px; left: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; gap: 8px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000;">
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">👍</span>
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">😮</span>
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">❤️</span>
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">🔥</span>
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">🎨</span>
+                <span class="emoji-opt" style="font-size:30px; cursor:pointer;">✅</span>
             </div>
             <div class="toolbar-scroll">
                 <button id="btn-lock" class="tool-btn hidden">🔓</button>
-                <button id="btn-open-stamps" class="tool-btn">💬</button>
+                <button id="btn-open-emoji" class="tool-btn">💬</button>
                 <div class="layer-box"><div id="layer-list" style="display:flex; gap:4px;"></div><button id="btn-add-layer" style="border:none; background:#ddd; border-radius:8px; padding:8px; cursor:pointer;">＋</button></div>
                 <input type="color" id="color-picker" value="#6366f1" style="width:48px; height:48px; border:none; padding:0; flex-shrink:0;">
                 <button id="btn-pen" class="tool-btn active">🖊️</button>
                 <button id="btn-eraser" class="tool-btn">🧽</button>
                 <button id="btn-undo" class="tool-btn">↩️</button>
                 <button id="btn-clear" class="tool-btn" style="background:var(--danger); color:white; display:none;">💣</button>
-                <input type="range" id="size-range" min="1" max="50" value="5" style="min-width:80px;">
+                <input type="range" id="size-range" min="1" max="100" value="5" style="min-width:80px;">
             </div>
         </div>
     </div>
@@ -114,207 +122,145 @@
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
 
-        let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [], isLocked = false, onlineUsers = [];
+        let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], scale = 1.0, posX = 0, posY = 0;
+        const MASTER_HASH = "8153f3e795247345f1710976537b06822452377c8e967520e7f722c2a05d894a"; // delta437
 
-        // --- ズーム・移動システム ---
-        let scale = 1.0, posX = 0, posY = 0, lastPinchDist = 0;
-        const container = document.getElementById('canvas-container');
-        const wrap = document.getElementById('canvas-wrap');
+        async function hashKey(t) { const m = new TextEncoder().encode(t); const b = await crypto.subtle.digest('SHA-256', m); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''); }
 
-        function updateTransform() {
-            container.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-            document.getElementById('zoom-label').innerText = scale.toFixed(1) + "x";
-        }
-
-        // ズームリセット
-        document.getElementById('zoom-label').onclick = () => {
-            scale = 1.0; posX = (wrap.clientWidth - canvas.width) / 2; posY = (wrap.clientHeight - canvas.height) / 2;
-            updateTransform();
-        };
-
-        // --- ログイン・部屋管理 ---
+        // --- ログイン・ロビー ---
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
             if(!n || !p) return;
-            const nameCheck = await getDocs(query(collection(db,"users"), where("name","==",n)));
-            if(nameCheck.empty) { await addDoc(collection(db,"users"), {name:n, pass:p}); localStorage.setItem('soulkin_user', n); loginSuccess(n); }
-            else {
-                let matched = false; nameCheck.forEach(d => { if(d.data().pass === p) matched = true; });
-                if(matched) { localStorage.setItem('soulkin_user', n); loginSuccess(n); }
-                else alert("パスワードが違います");
-            }
+            const qU = await getDocs(query(collection(db,"users"), where("name","==",n)));
+            if(qU.empty) { await addDoc(collection(db,"users"), {name:n, pass:p}); loginSuccess(n); }
+            else { let m=false; qU.forEach(d=>{if(d.data().pass===p)m=true;}); if(m) loginSuccess(n); else alert("名前が使われています"); }
         };
-        function loginSuccess(n) { myName = n; document.getElementById('user-label').innerText = n; document.getElementById('auth-page').classList.add('hidden'); document.getElementById('lobby-page').classList.remove('hidden'); loadRooms(); }
-        document.getElementById('btn-logout').onclick = () => { localStorage.removeItem('soulkin_user'); location.reload(); };
-
+        function loginSuccess(n) { myName=n; localStorage.setItem('soulkin_user',n); document.getElementById('user-label').innerText=n; document.getElementById('auth-page').classList.add('hidden'); document.getElementById('lobby-page').classList.remove('hidden'); loadRooms(); }
+        
         function loadRooms() {
             onSnapshot(query(collection(db,"rooms"), orderBy("createdAt","desc")), snap => {
                 const list = document.getElementById('room-list'); list.innerHTML = "<h3>部屋一覧</h3>";
                 snap.forEach(d => {
                     const r = d.data();
                     const div = document.createElement('div'); div.className = "room-card";
-                    div.innerHTML = `<div><b>${r.joinPass ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
-                        <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass || ""}')">入室</button>
-                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="color:red; border:none; background:none; font-size:20px;">🗑️</button></div>`;
+                    div.innerHTML = `<div><b>${r.joinPass?'🔒':''} ${r.name}</b><br><small>${r.w}x${r.h}</small></div>
+                        <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass||""}')">入室</button>
+                        <button onclick="window.adminDelete('${d.id}','${r.delPass}')" style="color:red; border:none; background:none; font-size:20px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
         }
-        window.tryJoin = (id, n, w, h, host, jp) => { 
-            if (jp && jp.trim() !== "") {
-                const input = prompt("パスワード：");
-                if (input !== jp) return alert("違います");
-            }
-            window.joinRoom(id, n, w, h, host); 
+
+        window.adminDelete = async (id, correct) => {
+            const input = prompt("削除パスワードまたはマスターキー:");
+            if(!input) return;
+            if(input === correct || (await hashKey(input)) === MASTER_HASH) {
+                if(confirm("部屋を完全に削除しますか？")) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); remove(ref(rtdb,`rooms/${id}`)); }
+            } else alert("無効なキーです");
         };
-        window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); } };
+
+        window.tryJoin = (id,n,w,h,host,jp) => { if(jp && prompt("パスワード")!==jp) return alert("不一致"); window.joinRoom(id,n,w,h,host); };
 
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
-            // 上限を2000に変更
-            let w = Math.max(100, Math.min(2000, parseInt(document.getElementById('room-w').value) || 400));
-            let h = Math.max(100, Math.min(2000, parseInt(document.getElementById('room-h').value) || 600));
+            let w = Math.min(2000, parseInt(document.getElementById('room-w').value)||400), h = Math.min(2000, parseInt(document.getElementById('room-h').value)||600);
             const jp = document.getElementById('room-join-pass').value, dp = document.getElementById('room-del-pass').value;
             if(!n || !dp) return;
             const d = await addDoc(collection(db,"rooms"), {name:n, w, h, joinPass:jp, delPass:dp, host:myName, createdAt:Date.now()});
             window.joinRoom(d.id, n, w, h, myName);
         };
 
-        // --- 描画・キャンバス制御 ---
-        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+        // --- キャンバス & リアクション ---
+        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d'), wrap = document.getElementById('canvas-wrap'), cont = document.getElementById('canvas-container');
         let drawing = false, lx, ly;
 
         window.joinRoom = (id, name, w, h, host) => {
             activeRoomId = id; canvas.width = w; canvas.height = h;
             document.getElementById('lobby-page').classList.add('hidden'); document.getElementById('game-page').classList.remove('hidden');
             document.getElementById('room-label').innerText = name;
-            if (host === myName) { document.getElementById('btn-clear').style.display = "flex"; document.getElementById('btn-lock').classList.remove('hidden'); }
-            
-            // 初期位置を中央に
-            posX = (wrap.clientWidth - w) / 2; posY = (wrap.clientHeight - h) / 2;
-            updateTransform();
+            posX = (wrap.clientWidth-w)/2; posY = (wrap.clientHeight-h)/2; updateTransform();
 
-            set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
-            onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
-            onValue(ref(rtdb, `rooms/${id}/users`), snap => { document.getElementById('online-count').innerText = Object.keys(snap.val() || {}).length; });
-            onValue(ref(rtdb, `rooms/${id}/isLocked`), snap => {
-                isLocked = snap.val() || false;
-                document.getElementById('lock-overlay').style.display = isLocked ? "flex" : "none";
-                document.getElementById('btn-lock').innerText = isLocked ? "🔒" : "🔓";
+            // リアクション購読
+            onValue(dbQuery(ref(rtdb, `rooms/${id}/emojis`), limitToLast(1)), snap => {
+                const val = snap.val(); if(val) { const item = Object.values(val)[0]; if(Date.now()-item.t < 2000) showEmoji(item.e, item.u); }
             });
+
             onValue(ref(rtdb, `draws/${id}`), snap => {
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                const data = snap.val() || {}, all = [], layers = [];
-                Object.keys(data).forEach(lid => { layers.push(lid); Object.keys(data[lid]).forEach(kid => { if(data[lid][kid].x1!==undefined) all.push({...data[lid][kid], lid}); }); });
+                ctx.clearRect(0,0,w,h);
+                const data = snap.val()||{}, all = [], layers = [];
+                Object.keys(data).forEach(lid => { layers.push(lid); Object.keys(data[lid]).forEach(k => { if(data[lid][k].x1!==undefined) all.push({...data[lid][k], lid}); }); });
                 all.sort((a,b)=>a.lid.localeCompare(b.lid,undefined,{numeric:true})).forEach(d => {
-                    ctx.beginPath(); ctx.strokeStyle = d.c; ctx.lineWidth = d.s; ctx.lineCap = "round";
-                    ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
+                    ctx.beginPath(); ctx.strokeStyle=d.c; ctx.lineWidth=d.s; ctx.lineCap="round"; ctx.moveTo(d.x1,d.y1); ctx.lineTo(d.x2,d.y2); ctx.stroke();
                 });
                 roomLayers = layers.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); if(roomLayers.length===0) roomLayers=["1"];
                 renderLayerUI();
             });
         };
 
-        // --- タッチ・マウス操作（修正版） ---
-        const getCanvasPos = (e) => {
-            const touch = e.touches ? e.touches[0] : e;
-            const rect = wrap.getBoundingClientRect();
-            const x = (touch.clientX - rect.left - posX) / scale;
-            const y = (touch.clientY - rect.top - posY) / scale;
-            return [x, y];
+        function showEmoji(e, u) {
+            const div = document.createElement('div'); div.className = 'reaction-bubble';
+            div.innerHTML = `${e}<div class="reaction-user">${u}</div>`;
+            document.getElementById('reaction-container').appendChild(div);
+            setTimeout(()=>div.remove(), 2500);
+        }
+
+        document.getElementById('btn-open-emoji').onclick = (e) => { e.stopPropagation(); document.getElementById('stamp-menu').classList.toggle('hidden'); };
+        document.querySelectorAll('.emoji-opt').forEach(el => {
+            el.onclick = () => { push(ref(rtdb, `rooms/${activeRoomId}/emojis`), { e: el.innerText, u: myName, t: Date.now() }); document.getElementById('stamp-menu').classList.add('hidden'); };
+        });
+
+        // --- 描画ロジック & ズーム (2000px対応) ---
+        function updateTransform() { cont.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`; document.getElementById('zoom-label').innerText = scale.toFixed(1) + "x"; }
+        const getPos = (e) => {
+            const t = e.touches ? e.touches[0] : e, r = wrap.getBoundingClientRect();
+            return [(t.clientX-r.left-posX)/scale, (t.clientY-r.top-posY)/scale];
         };
 
-        wrap.addEventListener('mousedown', (e) => {
-            if(isLocked) return;
-            drawing = true; [lx, ly] = getCanvasPos(e); undoStack.push([]);
+        wrap.addEventListener('mousedown', e => { drawing=true; [lx,ly]=getPos(e); });
+        window.addEventListener('mousemove', e => {
+            if(!drawing) return; const [x,y]=getPos(e);
+            push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx,y1:ly,x2:x,y2:y, c:mode==='eraser'?'#ffffff':document.getElementById('color-picker').value, s:document.getElementById('size-range').value});
+            [lx,ly]=[x,y];
         });
+        window.addEventListener('mouseup', ()=>drawing=false);
 
-        window.addEventListener('mousemove', (e) => {
-            if(!drawing) return;
-            const [x, y] = getCanvasPos(e);
-            const c = mode==='eraser'?'#ffffff':document.getElementById('color-picker').value;
-            const s = document.getElementById('size-range').value;
-            const r = push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx, y1:ly, x2:x, y2:y, c, s});
-            undoStack[undoStack.length-1].push({l:activeLayer, k:r.key}); [lx, ly] = [x, y];
-        });
-
-        window.addEventListener('mouseup', () => drawing = false);
-
-        // 2本指操作（移動とズーム）
-        wrap.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                drawing = false;
-                lastPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            } else if (!isLocked) {
-                drawing = true; [lx, ly] = getCanvasPos(e); undoStack.push([]);
-            }
+        // ピンチズーム
+        let startDist = 0;
+        wrap.addEventListener('touchstart', e => {
+            if(e.touches.length===2) { drawing=false; startDist = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
+            else { drawing=true; [lx,ly]=getPos(e); }
+        }, {passive:false});
+        wrap.addEventListener('touchmove', e => {
+            if(e.touches.length===2) {
+                e.preventDefault(); const d = Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+                const s = Math.max(0.1, Math.min(5, scale * (d/startDist)));
+                const cX = (e.touches[0].clientX+e.touches[1].clientX)/2, cY = (e.touches[0].clientY+e.touches[1].clientY)/2, r = wrap.getBoundingClientRect();
+                posX -= (cX-r.left-posX)*(s/scale-1); posY -= (cY-r.top-posY)*(s/s-1); // 簡易化
+                scale=s; startDist=d; updateTransform();
+            } else if(drawing) { e.preventDefault(); const [x,y]=getPos(e); push(ref(rtdb,`draws/${activeRoomId}/${activeLayer}`),{x1:lx,y1:ly,x2:x,y2:y,c:mode==='eraser'?'#ffffff':document.getElementById('color-picker').value,s:document.getElementById('size-range').value}); [lx,ly]=[x,y]; }
         }, {passive:false});
 
-        wrap.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const deltaScale = dist / lastPinchDist;
-                const newScale = Math.max(0.1, Math.min(5, scale * deltaScale));
-                
-                // 指の中心点を基準にズーム
-                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                const rect = wrap.getBoundingClientRect();
-                posX -= (centerX - rect.left - posX) * (newScale / scale - 1);
-                posY -= (centerY - rect.top - posY) * (newScale / scale - 1);
-                
-                scale = newScale;
-                lastPinchDist = dist;
-                updateTransform();
-            } else if (drawing) {
-                e.preventDefault();
-                const [x, y] = getCanvasPos(e);
-                const c = mode==='eraser'?'#ffffff':document.getElementById('color-picker').value;
-                push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx, y1:ly, x2:x, y2:y, c, s:document.getElementById('size-range').value});
-                [lx, ly] = [x, y];
-            }
-        }, {passive:false});
-
-        wrap.addEventListener('touchend', () => { drawing = false; });
-
-        // マウスホイールでのズーム
-        wrap.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            const newScale = Math.max(0.1, Math.min(5, scale * delta));
-            const rect = wrap.getBoundingClientRect();
-            posX -= (e.clientX - rect.left - posX) * (newScale / scale - 1);
-            posY -= (e.clientY - rect.top - posY) * (newScale / scale - 1);
-            scale = newScale;
-            updateTransform();
-        }, {passive:false});
-
-        // --- その他UI機能 ---
+        // レイヤーUI
         function renderLayerUI() {
-            const list = document.getElementById('layer-list'); list.innerHTML = "";
-            roomLayers.forEach(l => {
-                if(l==="_init") return;
-                const div = document.createElement('div'); div.className = `layer-item ${activeLayer===l?'active':''}`;
-                div.innerHTML = `<button class="layer-btn">L${l}</button><button class="layer-del">×</button>`;
-                div.querySelector('.layer-btn').onclick = () => { activeLayer = l; renderLayerUI(); };
-                div.querySelector('.layer-del').onclick = () => { if(roomLayers.length>1 && confirm("消去？")) remove(ref(rtdb, `draws/${activeRoomId}/${l}`)); };
-                list.appendChild(div);
+            const l = document.getElementById('layer-list'); l.innerHTML = "";
+            roomLayers.forEach(id => { if(id==="_init") return;
+                const d = document.createElement('div'); d.className = `layer-item ${activeLayer===id?'active':''}`;
+                d.innerHTML = `<button class="layer-btn">L${id}</button><button class="layer-del">×</button>`;
+                d.querySelector('.layer-btn').onclick = () => { activeLayer=id; renderLayerUI(); };
+                d.querySelector('.layer-del').onclick = () => { if(roomLayers.length>1) remove(ref(rtdb,`draws/${activeRoomId}/${id}`)); };
+                l.appendChild(d);
             });
         }
         document.getElementById('btn-add-layer').onclick = () => {
-            const next = Math.max(...roomLayers.filter(l=>l!=="_init").map(Number)) + 1;
-            set(ref(rtdb, `draws/${activeRoomId}/${next}/_init`), true); activeLayer = String(next);
+            const next = Math.max(...roomLayers.filter(x=>x!=="_init").map(Number))+1;
+            set(ref(rtdb,`draws/${activeRoomId}/${next}/_init`), true); activeLayer=String(next);
         };
-        document.getElementById('btn-undo').onclick = () => { const last = undoStack.pop(); if(last) last.forEach(i => remove(ref(rtdb, `draws/${activeRoomId}/${i.l}/${i.k}`))); };
-        document.getElementById('btn-clear').onclick = () => { if(confirm("全消去？")) remove(ref(rtdb, `draws/${activeRoomId}`)); };
+
         document.getElementById('btn-pen').onclick = () => { mode='pen'; updateBtn('btn-pen'); };
         document.getElementById('btn-eraser').onclick = () => { mode='eraser'; updateBtn('btn-eraser'); };
-        function updateBtn(id) { document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        document.getElementById('btn-lock').onclick = () => set(ref(rtdb, `rooms/${activeRoomId}/isLocked`), !isLocked);
-        document.getElementById('btn-open-stamps').onclick = (e) => { e.stopPropagation(); document.getElementById('stamp-menu').classList.toggle('hidden'); };
-        document.getElementById('btn-save').onclick = () => { const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'art.png'; a.click(); };
+        function updateBtn(id) { document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         document.getElementById('btn-leave').onclick = () => location.reload();
+        window.onclick = () => document.getElementById('stamp-menu').classList.add('hidden');
     </script>
 </body>
