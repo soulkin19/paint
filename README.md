@@ -1,9 +1,7 @@
-<!DOCTYPE html>
-<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Layer Delete</title>
+    <title>Soulkin Paint - User List</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -81,7 +79,13 @@
     <div id="game-page" class="hidden" style="display:flex; flex-direction:column; height:100vh; width:100%;">
         <div id="reaction-container"></div>
         <div class="header">
-            <div><b id="room-label"></b> <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px;">👤 <span id="online-count">1</span></small> <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span></div>
+            <div>
+                <b id="room-label"></b> 
+                <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px; cursor:pointer;" title="参加者を表示">
+                    👤 <span id="online-count">0</span>
+                </small> 
+                <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span>
+            </div>
             <div style="display:flex; gap:8px;"><button id="btn-save" class="btn-outline">💾</button><button id="btn-leave" class="btn-outline">退室</button></div>
         </div>
 
@@ -92,7 +96,7 @@
 
         <div class="toolbar-wrapper">
             <div id="stamp-menu" class="hidden">
-                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">🎨</span><span class="stamp-option">🙏</span>
+                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">👎</span><span class="stamp-option">🙏</span>
             </div>
             <div class="toolbar-scroll">
                 <button id="btn-lock" class="tool-btn hidden" title="部屋をロック/解除">🔓</button>
@@ -121,7 +125,7 @@
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
 
-        let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [], scale = 1.0, initialDist = 0, isLocked = false;
+        let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [], scale = 1.0, initialDist = 0, isLocked = false, onlineUsers = [];
 
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
@@ -175,6 +179,13 @@
             set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
             onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
 
+            // オンラインユーザー管理
+            onValue(ref(rtdb, `rooms/${id}/users`), snap => {
+                const data = snap.val() || {};
+                onlineUsers = Object.keys(data);
+                document.getElementById('online-count').innerText = onlineUsers.length;
+            });
+
             onValue(ref(rtdb, `rooms/${id}/isLocked`), snap => {
                 isLocked = snap.val() || false;
                 document.getElementById('lock-overlay').style.display = isLocked ? "flex" : "none";
@@ -202,6 +213,11 @@
             });
         };
 
+        // 人数バッジクリックでユーザー一覧表示
+        document.getElementById('online-count-badge').onclick = () => {
+            alert("現在入室中のメンバー:\n・" + onlineUsers.join("\n・"));
+        };
+
         document.getElementById('btn-lock').onclick = () => {
             set(ref(rtdb, `rooms/${activeRoomId}/isLocked`), !isLocked);
         };
@@ -212,11 +228,9 @@
                 if(l === "_init") return;
                 const item = document.createElement('div');
                 item.className = `layer-item ${activeLayer===l?'active':''}`;
-                
                 const b = document.createElement('button');
                 b.className = `layer-btn`; b.innerText = `L${l}`;
                 b.onclick = () => { activeLayer = l; renderLayerUI(); };
-                
                 const del = document.createElement('button');
                 del.className = `layer-del`; del.innerText = `×`;
                 del.onclick = (e) => {
@@ -227,7 +241,6 @@
                         if(activeLayer === l) activeLayer = roomLayers.find(x => x !== l);
                     }
                 };
-                
                 item.appendChild(b); item.appendChild(del);
                 lList.appendChild(item);
             });
@@ -289,4 +302,3 @@
         window.onclick = () => document.getElementById('stamp-menu').classList.add('hidden');
     </script>
 </body>
-</html>
