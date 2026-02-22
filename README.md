@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Unique Username</title>
+    <title>Soulkin Paint - Fixed</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -129,32 +129,18 @@
 
         window.onload = () => { if(myName) loginSuccess(myName); };
         
-        // アカウント作成・ログインロジックの修正
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
             if(!n || !p) return;
-
-            // まず名前が一致するユーザーを検索
             const nameCheck = await getDocs(query(collection(db,"users"), where("name","==",n)));
-            
             if(nameCheck.empty) {
-                // 名前が存在しない場合は新規登録
                 await addDoc(collection(db,"users"), {name:n, pass:p});
-                localStorage.setItem('soulkin_user', n); 
-                loginSuccess(n);
+                localStorage.setItem('soulkin_user', n); loginSuccess(n);
             } else {
-                // 名前が存在する場合、パスワードが一致するか確認
                 let matched = false;
-                nameCheck.forEach(doc => {
-                    if(doc.data().pass === p) matched = true;
-                });
-
-                if(matched) {
-                    localStorage.setItem('soulkin_user', n); 
-                    loginSuccess(n);
-                } else {
-                    alert("その名前は既に使われているか、パスワードが違います。");
-                }
+                nameCheck.forEach(doc => { if(doc.data().pass === p) matched = true; });
+                if(matched) { localStorage.setItem('soulkin_user', n); loginSuccess(n); }
+                else { alert("その名前は既に使われています。パスワードが違うようです。"); }
             }
         };
 
@@ -185,6 +171,7 @@
         };
 
         window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); remove(ref(rtdb, `rooms/${id}`)); } };
+        
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
             let w = Math.max(100, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
@@ -202,31 +189,24 @@
             activeRoomId = id; canvas.width = w; canvas.height = h;
             document.getElementById('lobby-page').classList.add('hidden'); document.getElementById('game-page').classList.remove('hidden');
             document.getElementById('room-label').innerText = name;
-            
             if (host === myName) {
                 document.getElementById('btn-clear').style.display = "flex";
                 document.getElementById('btn-lock').classList.remove('hidden');
             }
-
             set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
             onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
-
             onValue(ref(rtdb, `rooms/${id}/users`), snap => {
-                const data = snap.val() || {};
-                onlineUsers = Object.keys(data);
+                const data = snap.val() || {}; onlineUsers = Object.keys(data);
                 document.getElementById('online-count').innerText = onlineUsers.length;
             });
-
             onValue(ref(rtdb, `rooms/${id}/isLocked`), snap => {
                 isLocked = snap.val() || false;
                 document.getElementById('lock-overlay').style.display = isLocked ? "flex" : "none";
                 document.getElementById('btn-lock').innerText = isLocked ? "🔒" : "🔓";
             });
-
             onValue(dbQuery(ref(rtdb, `rooms/${id}/stamps`), limitToLast(1)), snap => {
                 const data = snap.val(); if(data) { const s = data[Object.keys(data)[0]]; if(Date.now() - s.time < 2000) showReaction(s.emoji, s.user); }
             });
-
             onValue(ref(rtdb, `draws/${id}`), snap => {
                 ctx.clearRect(0,0,canvas.width,canvas.height);
                 const data = snap.val() || {}, all = [], layersFound = [];
@@ -244,13 +224,8 @@
             });
         };
 
-        document.getElementById('online-count-badge').onclick = () => {
-            alert("現在入室中のメンバー:\n・" + onlineUsers.join("\n・"));
-        };
-
-        document.getElementById('btn-lock').onclick = () => {
-            set(ref(rtdb, `rooms/${activeRoomId}/isLocked`), !isLocked);
-        };
+        document.getElementById('online-count-badge').onclick = () => { alert("参加者:\n・" + onlineUsers.join("\n・")); };
+        document.getElementById('btn-lock').onclick = () => { set(ref(rtdb, `rooms/${activeRoomId}/isLocked`), !isLocked); };
 
         function renderLayerUI() {
             const lList = document.getElementById('layer-list'); lList.innerHTML = "";
@@ -264,17 +239,13 @@
                 const del = document.createElement('button');
                 del.className = `layer-del`; del.innerText = `×`;
                 del.onclick = (e) => {
-                    e.stopPropagation();
-                    if(roomLayers.length <= 1) return alert("最後のレイヤーは消せません");
-                    if(confirm(`レイヤー L${l} を削除して中身を全消去しますか？`)) {
-                        remove(ref(rtdb, `draws/${activeRoomId}/${l}`));
-                        if(activeLayer === l) activeLayer = roomLayers.find(x => x !== l);
-                    }
+                    e.stopPropagation(); if(roomLayers.length <= 1) return alert("消せません");
+                    if(confirm(`L${l}を削除？`)) { remove(ref(rtdb, `draws/${activeRoomId}/${l}`)); if(activeLayer === l) activeLayer = roomLayers.find(x => x !== l); }
                 };
-                item.appendChild(b); item.appendChild(del);
-                lList.appendChild(item);
+                item.appendChild(b); item.appendChild(del); lList.appendChild(item);
             });
         }
+
         document.getElementById('btn-add-layer').onclick = () => {
             const nums = roomLayers.filter(l => l !== "_init").map(Number);
             const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
@@ -293,8 +264,7 @@
         wrap.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
                 const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                if (initialDist > 0) updateZoom(scale * (dist / initialDist));
-                initialDist = dist;
+                if (initialDist > 0) updateZoom(scale * (dist / initialDist)); initialDist = dist;
             } else if (drawing && !isLocked) { move(e); e.preventDefault(); }
         }, { passive: false });
 
@@ -310,23 +280,21 @@
             const r = push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx, y1:ly, x2:x, y2:y, c, s:document.getElementById('size-range').value});
             undoStack[undoStack.length-1].push({l:activeLayer, k:r.key}); [lx,ly] = [x,y];
         };
-        canvas.addEventListener('mousedown', (e) => { if(!isLocked) start(e); }); window.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing=false);
+        canvas.addEventListener('mousedown', (e) => { if(!isLocked) start(e); });
+        window.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing=false);
         wrap.addEventListener('touchend', () => { drawing=false; initialDist=0; });
-
         document.getElementById('btn-open-stamps').onclick = (e) => { e.stopPropagation(); document.getElementById('stamp-menu').classList.toggle('hidden'); };
-        document.querySelectorAll('.stamp-option').forEach(el => {
-            el.onclick = () => { push(ref(rtdb, `rooms/${activeRoomId}/stamps`), { emoji: el.innerText, user: myName, time: Date.now() }); };
-        });
+        document.querySelectorAll('.stamp-option').forEach(el => { el.onclick = () => { push(ref(rtdb, `rooms/${activeRoomId}/stamps`), { emoji: el.innerText, user: myName, time: Date.now() }); }; });
         function showReaction(emoji, user) {
             const div = document.createElement('div'); div.className = 'reaction-bubble';
             div.innerHTML = `${emoji}<span style="font-size:10px;">${user}</span>`;
-            document.getElementById('reaction-container').appendChild(div);
-            setTimeout(() => div.remove(), 2000);
+            document.getElementById('reaction-container').appendChild(div); setTimeout(() => div.remove(), 2000);
         }
         document.getElementById('btn-pen').onclick = () => { mode='pen'; updateBtn('btn-pen'); };
         document.getElementById('btn-eraser').onclick = () => { mode='eraser'; updateBtn('btn-eraser'); };
         function updateBtn(id) { document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         document.getElementById('btn-undo').onclick = () => { if(isLocked) return; const last = undoStack.pop(); if(last) last.forEach(i => remove(ref(rtdb, `draws/${activeRoomId}/${i.l}/${i.k}`))); };
+        document.getElementById('btn-clear').onclick = () => { if(confirm("全消去？")) remove(ref(rtdb, `draws/${activeRoomId}`)); };
         document.getElementById('btn-save').onclick = () => { const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'art.png'; a.click(); };
         document.getElementById('btn-leave').onclick = () => location.reload();
         window.onclick = () => document.getElementById('stamp-menu').classList.add('hidden');
