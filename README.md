@@ -154,8 +154,8 @@
         
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
-            let w = Math.max(1, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
-            let h = Math.max(1, Math.min(800, parseInt(document.getElementById('room-h').value) || 600));
+            let w = Math.max(100, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
+            let h = Math.max(100, Math.min(800, parseInt(document.getElementById('room-h').value) || 600));
             const dp = document.getElementById('room-del-pass').value;
             if(!n || !dp) return alert("入力不足");
             const d = await addDoc(collection(db,"rooms"), {name:n, w, h, delPass:dp, host:myName, createdAt:Date.now()});
