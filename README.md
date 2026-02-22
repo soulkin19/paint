@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Zoom Enabled</title>
+    <title>Soulkin Paint - Fixed</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
         .hidden { display: none !important; }
 
         .card { background: var(--card-bg); padding: 24px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin: 10px; width: 90%; max-width: 450px; box-sizing: border-box; }
@@ -15,14 +15,16 @@
         button:active { transform: scale(0.96); }
         .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #64748b; width: auto; padding: 8px 16px; font-size: 14px; }
 
-        .header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index:100; box-sizing: border-box; }
+        .header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index: 100; box-sizing: border-box; }
         
-        #user-list-popover { position: absolute; top: 60px; left: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); padding: 10px; z-index: 1000; min-width: 120px; max-height: 200px; overflow-y: auto; }
-        .user-name-item { padding: 5px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        /* 部屋リストのレイアウト固定 */
+        #room-list { width: 95%; max-width: 500px; padding: 10px 0 120px 0; }
+        .room-card { background: white; margin-bottom: 12px; padding: 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .room-info { flex: 1; }
 
-        /* 拡大縮小のためのコンテナ設定 */
+        /* 拡大縮小エリア：transitionを消してレスポンスを向上 */
         #canvas-wrap { width: 100%; overflow: auto; display: flex; justify-content: center; align-items: center; background: #cbd5e1; flex-grow: 1; position: relative; }
-        #canvas-container { transform-origin: center; transition: transform 0.1s ease-out; display: flex; justify-content: center; align-items: center; }
+        #canvas-container { transform-origin: center; display: flex; justify-content: center; align-items: center; }
         #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); touch-action: none; display: block; flex-shrink: 0; }
         
         .toolbar-wrapper { width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
@@ -30,11 +32,10 @@
         .tool-btn { flex: 0 0 auto; min-width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f1f5f9; border-radius: 12px; border: 2px solid transparent; }
         .tool-btn.active { border-color: var(--primary); background: #e0e7ff; color: var(--primary); }
         
+        #user-list-popover { position: absolute; top: 60px; left: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); padding: 10px; z-index: 1000; min-width: 120px; }
         .layer-box { display: flex; align-items: center; gap: 5px; background: #f1f5f9; padding: 5px 10px; border-radius: 14px; flex: 0 0 auto; }
         .layer-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: white; }
         .layer-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        #zoom-label { cursor: pointer; font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -63,7 +64,7 @@
             <input type="password" id="room-del-pass" placeholder="削除用パスワード">
             <button id="btn-create" style="width:100%;">作成して入室</button>
         </div>
-        <div id="room-list" style="width: 95%; max-width: 500px; padding-bottom: 50px;"></div>
+        <div id="room-list"></div>
     </div>
 
     <div id="game-page" class="hidden" style="display:flex; flex-direction:column; height:100vh; width:100%;">
@@ -71,7 +72,7 @@
             <div>
                 <b id="room-label"></b> 
                 <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px; cursor:pointer;">👤 <span id="online-count">1</span></small>
-                <span id="zoom-label" title="クリックでリセット">1.0x</span>
+                <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span>
             </div>
             <div id="user-list-popover" class="hidden"></div>
             <div style="display:flex; gap:8px;">
@@ -123,9 +124,8 @@
 
         let myName = localStorage.getItem('soulkin_user') || "";
         let activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [];
-        let scale = 1.0, initialDist = 0; // ズーム用変数
+        let scale = 1.0, initialDist = 0;
 
-        // 認証・ロビー処理（前回同様）
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
@@ -145,12 +145,13 @@
                     const div = document.createElement('div'); div.className = "room-card";
                     div.innerHTML = `<div class="room-info"><b>${r.name}</b><br><small>${r.w}x${r.h}</small></div>
                         <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.joinRoom('${d.id}','${r.name}',${r.w},${r.h},'${r.host}')">入室</button>
-                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red;">🗑️</button></div>`;
+                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red; font-size:18px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
         }
         window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); } };
+        
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
             let w = Math.max(1, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
@@ -171,10 +172,8 @@
             document.getElementById('game-page').classList.remove('hidden');
             document.getElementById('room-label').innerText = name;
             document.getElementById('btn-clear').style.display = (host === myName) ? "flex" : "none";
-            
             const pRef = ref(rtdb, `rooms/${id}/users/${myName}`);
             set(pRef, true); onDisconnect(pRef).remove();
-            
             onValue(ref(rtdb, `draws/${id}`), snap => {
                 ctx.clearRect(0,0,canvas.width,canvas.height);
                 const data = snap.val() || {}, all = [], layersFound = [];
@@ -193,11 +192,10 @@
             onValue(ref(rtdb, `rooms/${id}/users`), s => {
                 const userNames = Object.keys(s.val() || {});
                 document.getElementById('online-count').innerText = userNames.length;
-                document.getElementById('user-list-popover').innerHTML = userNames.map(name => `<div class="user-name-item">👤 ${name}</div>`).join('');
+                document.getElementById('user-list-popover').innerHTML = userNames.map(name => `<div style="padding:5px; border-bottom:1px solid #eee;">👤 ${name}</div>`).join('');
             });
         };
 
-        // ズーム倍率の更新と表示
         function updateZoom(newScale) {
             scale = Math.max(0.1, Math.min(5, newScale));
             container.style.transform = `scale(${scale})`;
@@ -205,7 +203,6 @@
         }
         document.getElementById('zoom-label').onclick = () => updateZoom(1.0);
 
-        // マウスホイールでのズーム (Ctrlキー併用)
         window.addEventListener('wheel', (e) => {
             if (activeRoomId && e.ctrlKey) {
                 e.preventDefault();
@@ -213,7 +210,6 @@
             }
         }, { passive: false });
 
-        // ピンチズーム処理
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
@@ -225,33 +221,32 @@
         canvas.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
                 const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                updateZoom(scale * (dist / initialDist));
+                if (initialDist > 0) updateZoom(scale * (dist / initialDist));
                 initialDist = dist;
-            } else if (e.touches.length === 1) {
+            } else if (e.touches.length === 1 && drawing) {
                 move(e);
+                if(e.cancelable) e.preventDefault();
             }
         }, { passive: false });
 
-        // 描画座標計算（ズーム倍率 scale を加味）
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
-            // scaleで割ることで、拡大時でも正しいキャンバス内座標を取得
-            return [(cx - rect.left) / scale * (canvas.width / (rect.width / scale)), (cy - rect.top) / scale * (canvas.height / (rect.height / scale))];
+            // ズームの影響を考慮して物理座標を論理座標に変換
+            return [(cx - rect.left) * (canvas.width / rect.width), (cy - rect.top) * (canvas.height / rect.height)];
         };
 
-        const start = (e) => { drawing = true; [lx, ly] = getPos(e); undoStack.push([]); };
+        const start = (e) => { if(e.touches && e.touches.length > 1) return; drawing = true; [lx, ly] = getPos(e); undoStack.push([]); };
         const move = (e) => {
             if(!drawing) return; const [x,y] = getPos(e);
             const c = mode==='eraser' ? '#ffffff' : document.getElementById('color-picker').value;
             const r = push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx, y1:ly, x2:x, y2:y, c, s:document.getElementById('size-range').value});
             undoStack[undoStack.length-1].push({l:activeLayer, k:r.key}); [lx,ly] = [x,y];
-            if(e.cancelable) e.preventDefault();
         };
 
         canvas.addEventListener('mousedown', start); window.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing=false);
-        canvas.addEventListener('touchend', () => drawing=false);
+        canvas.addEventListener('touchend', () => { drawing=false; initialDist=0; });
 
         document.getElementById('online-count-badge').onclick = (e) => { e.stopPropagation(); document.getElementById('user-list-popover').classList.toggle('hidden'); };
         window.onclick = () => document.getElementById('user-list-popover').classList.add('hidden');
