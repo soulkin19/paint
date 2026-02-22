@@ -1,46 +1,45 @@
-<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Chat Stickers</title>
+    <title>Soulkin Paint - Mobile Optimized</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
         .hidden { display: none !important; }
 
-        .card { background: var(--card-bg); padding: 24px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin: 10px; width: 90%; max-width: 450px; box-sizing: border-box; }
+        /* ロビーのスクロール改善 */
+        #lobby-page { width: 100%; display: flex; flex-direction: column; align-items: center; overflow-y: auto; height: 100vh; -webkit-overflow-scrolling: touch; }
+        
+        .card { background: var(--card-bg); padding: 24px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin: 10px; width: 90%; max-width: 450px; box-sizing: border-box; flex-shrink: 0; }
         input { margin: 8px 0; padding: 14px; width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
         button { padding: 14px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; transition: 0.2s; }
-        button:active { transform: scale(0.96); }
-        .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #64748b; width: auto; padding: 8px 16px; font-size: 14px; }
-
+        
         .header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index: 100; box-sizing: border-box; }
         
-        #room-list { width: 95%; max-width: 500px; padding: 10px 0 120px 0; }
+        #room-list { width: 90%; max-width: 450px; padding-bottom: 50px; }
         .room-card { background: white; margin-bottom: 12px; padding: 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
 
-        #canvas-wrap { width: 100%; overflow: auto; display: flex; justify-content: center; align-items: center; background: #cbd5e1; flex-grow: 1; position: relative; }
-        #canvas-container { display: flex; justify-content: center; align-items: center; }
-        #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); touch-action: none; display: block; flex-shrink: 0; }
+        /* キャンバスエリア */
+        #canvas-wrap { width: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: #cbd5e1; flex-grow: 1; position: relative; touch-action: none; }
+        #canvas-container { display: flex; justify-content: center; align-items: center; will-change: transform; }
+        #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); display: block; flex-shrink: 0; }
         
+        /* ツールバー */
         .toolbar-wrapper { width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
         .toolbar-scroll { display: flex; overflow-x: auto; padding: 0 15px; gap: 10px; align-items: center; }
         .tool-btn { flex: 0 0 auto; min-width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f1f5f9; border-radius: 12px; border: 2px solid transparent; }
         .tool-btn.active { border-color: var(--primary); background: #e0e7ff; color: var(--primary); }
         
-        /* 会話用スタンプのアニメーション */
-        #reaction-container { position: absolute; bottom: 100px; left: 0; width: 100%; height: 0; pointer-events: none; z-index: 500; overflow: visible; }
-        .reaction-bubble { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 24px; animation: floatUp 2s ease-out forwards; display: flex; flex-direction: column; align-items: center; }
-        .reaction-user { font-size: 10px; color: #64748b; margin-top: 4px; }
+        /* スタンプアニメーション */
+        #reaction-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 500; }
+        .reaction-bubble { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 24px; animation: floatUp 2s ease-out forwards; display: flex; flex-direction: column; align-items: center; }
         @keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 0); } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -100px); } }
 
         #stamp-menu { position: absolute; bottom: 75px; left: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; gap: 8px; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 1000; }
-        .stamp-option { font-size: 28px; cursor: pointer; padding: 5px; }
-
+        .stamp-option { font-size: 28px; cursor: pointer; }
         .layer-box { display: flex; align-items: center; gap: 5px; background: #f1f5f9; padding: 5px 10px; border-radius: 14px; flex: 0 0 auto; }
-        .layer-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: white; }
-        .layer-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -57,10 +56,10 @@
     <div id="lobby-page" class="hidden">
         <div class="header">
             <span>👤 <b id="user-label"></b></span>
-            <button id="btn-logout" class="btn-outline">ログアウト</button>
+            <button id="btn-logout" class="btn-outline">退出</button>
         </div>
         <div class="card">
-            <h3 style="margin-top:0">新しく部屋を作る</h3>
+            <h3 style="margin-top:0">部屋を作る</h3>
             <input type="text" id="room-name" placeholder="部屋の名前">
             <div style="display:flex; gap:10px;">
                 <input type="number" id="room-w" value="400" min="100" max="800">
@@ -68,7 +67,7 @@
             </div>
             <input type="password" id="room-join-pass" placeholder="入室パスワード">
             <input type="password" id="room-del-pass" placeholder="削除用パスワード">
-            <button id="btn-create" style="width:100%;">作成して入室</button>
+            <button id="btn-create" style="width:100%;">作成</button>
         </div>
         <div id="room-list"></div>
     </div>
@@ -76,7 +75,7 @@
     <div id="game-page" class="hidden" style="display:flex; flex-direction:column; height:100vh; width:100%;">
         <div id="reaction-container"></div>
         <div class="header">
-            <div><b id="room-label"></b> <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px; cursor:pointer;">👤 <span id="online-count">1</span></small> <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span></div>
+            <div><b id="room-label"></b> <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px;">👤 <span id="online-count">1</span></small> <span id="zoom-label" style="cursor:pointer; font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:10px; margin-left:5px;">1.0x</span></div>
             <div style="display:flex; gap:8px;"><button id="btn-save" class="btn-outline">💾</button><button id="btn-leave" class="btn-outline">退室</button></div>
         </div>
 
@@ -116,11 +115,11 @@
 
         let myName = localStorage.getItem('soulkin_user') || "", activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [], scale = 1.0, initialDist = 0;
 
-        // ログイン・ロビー処理
+        // --- ロビー・認証 ---
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
-            if(!n || !p) return alert("入力不足");
+            if(!n || !p) return;
             const s = await getDocs(query(collection(db,"users"),where("name","==",n),where("pass","==",p)));
             if(s.empty) { await addDoc(collection(db,"users"), {name:n, pass:p}); }
             localStorage.setItem('soulkin_user', n); loginSuccess(n);
@@ -133,11 +132,10 @@
                 const list = document.getElementById('room-list'); list.innerHTML = "<h3>部屋一覧</h3>";
                 snap.forEach(d => {
                     const r = d.data();
-                    const isLocked = r.joinPass && r.joinPass !== "";
                     const div = document.createElement('div'); div.className = "room-card";
-                    div.innerHTML = `<div class="room-info"><b>${isLocked ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
+                    div.innerHTML = `<div><b>${r.joinPass ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
                         <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass || ""}')">入室</button>
-                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red; font-size:18px;">🗑️</button></div>`;
+                        <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="color:red; border:none; background:none; font-size:20px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
@@ -149,13 +147,13 @@
             let w = Math.max(100, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
             let h = Math.max(100, Math.min(800, parseInt(document.getElementById('room-h').value) || 600));
             const jp = document.getElementById('room-join-pass').value, dp = document.getElementById('room-del-pass').value;
-            if(!n || !dp) return alert("部屋名と削除パス必須");
+            if(!n || !dp) return;
             const d = await addDoc(collection(db,"rooms"), {name:n, w, h, joinPass:jp, delPass:dp, host:myName, createdAt:Date.now()});
             window.joinRoom(d.id, n, w, h, myName);
         };
 
-        // ペイント・ズーム処理
-        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d'), container = document.getElementById('canvas-container');
+        // --- ゲーム・描画 ---
+        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d'), container = document.getElementById('canvas-container'), wrap = document.getElementById('canvas-wrap');
         let drawing = false, lx, ly;
 
         window.joinRoom = (id, name, w, h, host) => {
@@ -164,23 +162,17 @@
             document.getElementById('room-label').innerText = name;
             document.getElementById('btn-clear').style.display = (host === myName) ? "flex" : "none";
             
-            // プレゼンス管理
-            const pRef = ref(rtdb, `rooms/${id}/users/${myName}`); set(pRef, true); onDisconnect(pRef).remove();
-            
-            // 会話スタンプの購読（最新のもののみ）
+            set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
+            onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
+
             onValue(dbQuery(ref(rtdb, `rooms/${id}/stamps`), limitToLast(1)), snap => {
-                const data = snap.val(); if(!data) return;
-                const key = Object.keys(data)[0]; const s = data[key];
-                if(Date.now() - s.time < 2000) showReaction(s.emoji, s.user);
+                const data = snap.val(); if(data) { const s = data[Object.keys(data)[0]]; if(Date.now() - s.time < 2000) showReaction(s.emoji, s.user); }
             });
 
-            // 描画同期
             onValue(ref(rtdb, `draws/${id}`), snap => {
                 ctx.clearRect(0,0,canvas.width,canvas.height);
                 const data = snap.val() || {}, all = [];
-                Object.keys(data).forEach(lid => {
-                    Object.keys(data[lid]).forEach(kid => { if(data[lid][kid].x1 !== undefined) all.push({...data[lid][kid], lid}); });
-                });
+                Object.keys(data).forEach(lid => { Object.keys(data[lid]).forEach(kid => { if(data[lid][kid].x1 !== undefined) all.push({...data[lid][kid], lid}); }); });
                 all.sort((a,b) => a.lid.localeCompare(b.lid, undefined, {numeric:true})).forEach(d => {
                     ctx.beginPath(); ctx.strokeStyle = d.c; ctx.lineWidth = d.s; ctx.lineCap = "round";
                     ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
@@ -188,48 +180,52 @@
             });
         };
 
-        // 会話スタンプ機能
-        document.getElementById('btn-open-stamps').onclick = (e) => { e.stopPropagation(); document.getElementById('stamp-menu').classList.toggle('hidden'); };
-        document.querySelectorAll('.stamp-option').forEach(el => {
-            el.onclick = () => {
-                push(ref(rtdb, `rooms/${activeRoomId}/stamps`), { emoji: el.innerText, user: myName, time: Date.now() });
-                document.getElementById('stamp-menu').classList.add('hidden');
-            };
-        });
-
-        function showReaction(emoji, user) {
-            const div = document.createElement('div'); div.className = 'reaction-bubble';
-            div.innerHTML = `${emoji}<span class="reaction-user">${user}</span>`;
-            document.getElementById('reaction-container').appendChild(div);
-            setTimeout(() => div.remove(), 2000);
+        // --- どこでもズーム機能 ---
+        function updateZoom(ns) { 
+            scale = Math.max(0.1, Math.min(5, ns)); 
+            container.style.transform = `scale(${scale})`; 
+            document.getElementById('zoom-label').innerText = scale.toFixed(1) + "x"; 
         }
+        
+        const setZoomOrigin = (x, y) => { 
+            const r = container.getBoundingClientRect(); 
+            container.style.transformOrigin = `${(x - r.left) / scale}px ${(y - r.top) / scale}px`; 
+        };
 
-        // ズーム/描画ロジック（前回維持）
-        function updateZoom(ns) { scale = Math.max(0.1, Math.min(5, ns)); container.style.transform = `scale(${scale})`; document.getElementById('zoom-label').innerText = scale.toFixed(1) + "x"; }
-        document.getElementById('zoom-label').onclick = () => { container.style.transformOrigin = "center"; updateZoom(1.0); };
-        const setZoomOrigin = (x, y) => { const r = container.getBoundingClientRect(); container.style.transformOrigin = `${(x - r.left) / scale}px ${(y - r.top) / scale}px`; };
-        window.addEventListener('wheel', (e) => { if (activeRoomId && e.ctrlKey) { e.preventDefault(); setZoomOrigin(e.clientX, e.clientY); updateZoom(scale + (e.deltaY > 0 ? -0.1 : 0.1)); } }, { passive: false });
+        // 画面全体（wrap内）でズーム可能にする
+        wrap.addEventListener('wheel', (e) => { 
+            if (activeRoomId && e.ctrlKey) { 
+                e.preventDefault(); 
+                setZoomOrigin(e.clientX, e.clientY); 
+                updateZoom(scale + (e.deltaY > 0 ? -0.1 : 0.1)); 
+            } 
+        }, { passive: false });
 
-        canvas.addEventListener('touchstart', (e) => {
+        wrap.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                setZoomOrigin((e.touches[0].pageX + e.touches[1].pageX) / 2, (e.touches[0].pageY + e.touches[1].pageY) / 2);
+                const centerX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
+                const centerY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
+                setZoomOrigin(centerX, centerY);
                 initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            } else if (e.touches.length === 1) { start(e); }
+            } else if (e.target === canvas) { start(e); }
         }, { passive: true });
 
-        canvas.addEventListener('touchmove', (e) => {
+        wrap.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
                 const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
                 if (initialDist > 0) updateZoom(scale * (dist / initialDist));
                 initialDist = dist;
-            } else if (e.touches.length === 1 && drawing) { move(e); if(e.cancelable) e.preventDefault(); }
+            } else if (drawing) { move(e); e.preventDefault(); }
         }, { passive: false });
 
+        // --- 描画ロジック ---
         const getPos = (e) => {
-            const r = canvas.getBoundingClientRect(); const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+            const r = canvas.getBoundingClientRect(); 
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
             return [(cx - r.left) * (canvas.width / r.width), (cy - r.top) * (canvas.height / r.height)];
         };
-        const start = (e) => { if(e.touches && e.touches.length > 1) return; drawing = true; [lx, ly] = getPos(e); undoStack.push([]); };
+        const start = (e) => { drawing = true; [lx, ly] = getPos(e); undoStack.push([]); };
         const move = (e) => {
             if(!drawing) return; const [x,y] = getPos(e);
             const c = mode==='eraser' ? '#ffffff' : document.getElementById('color-picker').value;
@@ -237,16 +233,25 @@
             undoStack[undoStack.length-1].push({l:activeLayer, k:r.key}); [lx,ly] = [x,y];
         };
         canvas.addEventListener('mousedown', start); window.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing=false);
-        canvas.addEventListener('touchend', () => { drawing=false; initialDist=0; });
+        wrap.addEventListener('touchend', () => { drawing=false; initialDist=0; });
 
+        // --- その他UI ---
+        document.getElementById('btn-open-stamps').onclick = (e) => { e.stopPropagation(); document.getElementById('stamp-menu').classList.toggle('hidden'); };
+        document.querySelectorAll('.stamp-option').forEach(el => {
+            el.onclick = () => { push(ref(rtdb, `rooms/${activeRoomId}/stamps`), { emoji: el.innerText, user: myName, time: Date.now() }); };
+        });
+        function showReaction(emoji, user) {
+            const div = document.createElement('div'); div.className = 'reaction-bubble';
+            div.innerHTML = `${emoji}<span style="font-size:10px;">${user}</span>`;
+            document.getElementById('reaction-container').appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        }
         document.getElementById('btn-pen').onclick = () => { mode='pen'; updateBtn('btn-pen'); };
         document.getElementById('btn-eraser').onclick = () => { mode='eraser'; updateBtn('btn-eraser'); };
         function updateBtn(id) { document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         document.getElementById('btn-undo').onclick = () => { const last = undoStack.pop(); if(last) last.forEach(i => remove(ref(rtdb, `draws/${activeRoomId}/${i.l}/${i.k}`))); };
-        document.getElementById('btn-clear').onclick = () => { if(confirm("全消去？")) set(ref(rtdb, `draws/${activeRoomId}`), null); };
-        document.getElementById('btn-save').onclick = () => { const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'paint.png'; a.click(); };
-        document.getElementById('btn-leave').onclick = () => { location.reload(); };
+        document.getElementById('btn-save').onclick = () => { const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'art.png'; a.click(); };
+        document.getElementById('btn-leave').onclick = () => location.reload();
         window.onclick = () => document.getElementById('stamp-menu').classList.add('hidden');
     </script>
 </body>
-</html>
