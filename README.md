@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Room Lock</title>
+    <title>Soulkin Paint - Layer Delete</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -22,7 +23,6 @@
         #canvas-container { display: flex; justify-content: center; align-items: center; will-change: transform; }
         #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); display: block; flex-shrink: 0; }
         
-        /* ロック時のオーバーレイ */
         #lock-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); display: none; z-index: 400; cursor: not-allowed; align-items: center; justify-content: center; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); font-size: 20px; pointer-events: all; }
 
         .toolbar-wrapper { width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
@@ -38,8 +38,13 @@
         .stamp-option { font-size: 28px; cursor: pointer; }
         
         .layer-box { display: flex; align-items: center; gap: 5px; background: #f1f5f9; padding: 5px 10px; border-radius: 14px; flex: 0 0 auto; }
-        .layer-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; }
-        .layer-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .layer-item { display: flex; align-items: center; background: white; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
+        .layer-btn { padding: 8px 12px; font-size: 13px; border: none; background: transparent; cursor: pointer; }
+        .layer-item.active { background: var(--primary); border-color: var(--primary); }
+        .layer-item.active .layer-btn { color: white; }
+        .layer-del { padding: 8px 6px; font-size: 10px; color: #94a3b8; background: rgba(0,0,0,0.05); border: none; cursor: pointer; }
+        .layer-item.active .layer-del { color: rgba(255,255,255,0.8); }
+        
         .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #64748b; padding: 8px 16px; border-radius: 12px; }
     </style>
 </head>
@@ -87,7 +92,7 @@
 
         <div class="toolbar-wrapper">
             <div id="stamp-menu" class="hidden">
-                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">🎨</span><span class="stamp-option">🙏</span>><span class="stamp-option">👎</span>
+                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">🎨</span><span class="stamp-option">🙏</span>
             </div>
             <div class="toolbar-scroll">
                 <button id="btn-lock" class="tool-btn hidden" title="部屋をロック/解除">🔓</button>
@@ -162,7 +167,6 @@
             document.getElementById('lobby-page').classList.add('hidden'); document.getElementById('game-page').classList.remove('hidden');
             document.getElementById('room-label').innerText = name;
             
-            // ホスト専用機能の表示
             if (host === myName) {
                 document.getElementById('btn-clear').style.display = "flex";
                 document.getElementById('btn-lock').classList.remove('hidden');
@@ -171,7 +175,6 @@
             set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
             onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
 
-            // ロック状態の同期
             onValue(ref(rtdb, `rooms/${id}/isLocked`), snap => {
                 isLocked = snap.val() || false;
                 document.getElementById('lock-overlay').style.display = isLocked ? "flex" : "none";
@@ -199,7 +202,6 @@
             });
         };
 
-        // ロック機能の操作
         document.getElementById('btn-lock').onclick = () => {
             set(ref(rtdb, `rooms/${activeRoomId}/isLocked`), !isLocked);
         };
@@ -208,8 +210,26 @@
             const lList = document.getElementById('layer-list'); lList.innerHTML = "";
             roomLayers.forEach(l => {
                 if(l === "_init") return;
-                const b = document.createElement('button'); b.className = `layer-btn ${activeLayer===l?'active':''}`; b.innerText = `L${l}`;
-                b.onclick = () => { activeLayer = l; renderLayerUI(); }; lList.appendChild(b);
+                const item = document.createElement('div');
+                item.className = `layer-item ${activeLayer===l?'active':''}`;
+                
+                const b = document.createElement('button');
+                b.className = `layer-btn`; b.innerText = `L${l}`;
+                b.onclick = () => { activeLayer = l; renderLayerUI(); };
+                
+                const del = document.createElement('button');
+                del.className = `layer-del`; del.innerText = `×`;
+                del.onclick = (e) => {
+                    e.stopPropagation();
+                    if(roomLayers.length <= 1) return alert("最後のレイヤーは消せません");
+                    if(confirm(`レイヤー L${l} を削除して中身を全消去しますか？`)) {
+                        remove(ref(rtdb, `draws/${activeRoomId}/${l}`));
+                        if(activeLayer === l) activeLayer = roomLayers.find(x => x !== l);
+                    }
+                };
+                
+                item.appendChild(b); item.appendChild(del);
+                lList.appendChild(item);
             });
         }
         document.getElementById('btn-add-layer').onclick = () => {
@@ -269,3 +289,4 @@
         window.onclick = () => document.getElementById('stamp-menu').classList.add('hidden');
     </script>
 </body>
+</html>
