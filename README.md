@@ -66,8 +66,8 @@
             <h3 style="margin-top:0">部屋を作る</h3>
             <input type="text" id="room-name" placeholder="部屋の名前">
             <div style="display:flex; gap:10px;">
-                <input type="number" id="room-w" value="400" min="100" max="800">
-                <input type="number" id="room-h" value="600" min="100" max="800">
+                <input type="number" id="room-w" value="400" min="100" max="1500">
+                <input type="number" id="room-h" value="600" min="100" max="1500">
             </div>
             <input type="password" id="room-join-pass" placeholder="入室パスワード">
             <input type="password" id="room-del-pass" placeholder="削除用パスワード">
@@ -174,8 +174,8 @@
         
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
-            let w = Math.max(100, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
-            let h = Math.max(100, Math.min(800, parseInt(document.getElementById('room-h').value) || 600));
+            let w = Math.max(100, Math.min(1200, parseInt(document.getElementById('room-w').value) || 400));
+            let h = Math.max(100, Math.min(1200, parseInt(document.getElementById('room-h').value) || 600));
             const jp = document.getElementById('room-join-pass').value, dp = document.getElementById('room-del-pass').value;
             if(!n || !dp) return;
             const d = await addDoc(collection(db,"rooms"), {name:n, w, h, joinPass:jp, delPass:dp, host:myName, createdAt:Date.now()});
