@@ -3,39 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Stable Version</title>
+    <title>Soulkin Paint - Mobile Optimized</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .hidden { display: none !important; }
 
-        /* 共通カード */
         .card { background: var(--card-bg); padding: 24px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin: 10px; width: 90%; max-width: 450px; box-sizing: border-box; }
         input { margin: 8px 0; padding: 14px; width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
         button { padding: 14px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; transition: 0.2s; }
         button:active { transform: scale(0.96); }
         .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #64748b; width: auto; padding: 8px 16px; font-size: 14px; }
 
-        /* ヘッダー */
         .header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index:100; box-sizing: border-box; }
         
-        /* 部屋リスト */
         .room-card { background: white; margin-bottom: 12px; padding: 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
-        .room-info { flex: 1; }
 
-        /* キャンバス領域 */
-        #canvas-wrap { width: 100%; overflow: auto; display: flex; justify-content: center; padding: 20px 0; background: #e2e8f0; min-height: 80vh; }
-        #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); touch-action: none; display: block; }
+        /* キャンバス表示の最適化 */
+        #canvas-wrap { 
+            width: 100%; 
+            max-width: 100vw; 
+            overflow: auto; 
+            display: flex; 
+            justify-content: flex-start; /* モバイルでのスクロール開始位置を左端に */
+            align-items: flex-start;
+            padding: 10px; 
+            background: #cbd5e1; 
+            box-sizing: border-box;
+            flex-grow: 1;
+        }
+        #canvas { 
+            background: white; 
+            box-shadow: 0 4px 25px rgba(0,0,0,0.1); 
+            touch-action: none; /* JSで描画制御 */
+            display: block;
+            flex-shrink: 0;
+        }
         
-        /* ツールバー */
-        .toolbar-wrapper { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
+        .toolbar-wrapper { position: sticky; bottom: 0; width: 100%; background: white; border-top: 1px solid #e2e8f0; padding: 12px 0; z-index: 200; }
         .toolbar-scroll { display: flex; overflow-x: auto; padding: 0 15px; gap: 10px; align-items: center; }
         .tool-btn { flex: 0 0 auto; min-width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f1f5f9; border-radius: 12px; border: 2px solid transparent; }
         .tool-btn.active { border-color: var(--primary); background: #e0e7ff; color: var(--primary); }
         
-        /* レイヤー */
         .layer-box { display: flex; align-items: center; gap: 5px; background: #f1f5f9; padding: 5px 10px; border-radius: 14px; flex: 0 0 auto; }
-        .layer-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; }
+        .layer-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: white; }
         .layer-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
     </style>
 </head>
@@ -57,13 +68,15 @@
         </div>
         <div class="card">
             <h3 style="margin-top:0">新しく部屋を作る</h3>
+            <label style="font-size: 12px; color: #64748b;">部屋の名前</label>
             <input type="text" id="room-name" placeholder="部屋の名前">
+            <label style="font-size: 12px; color: #64748b;">サイズ (最大 800)</label>
             <div style="display:flex; gap:10px;">
-                <input type="number" id="room-w" value="400" placeholder="幅">
-                <input type="number" id="room-h" value="600" placeholder="高">
+                <input type="number" id="room-w" value="400" min="1" max="800" placeholder="幅">
+                <input type="number" id="room-h" value="600" min="1" max="800" placeholder="高">
             </div>
-            <input type="password" id="room-del-pass" placeholder="削除用パスワード（必須）">
-            <button id="btn-create" style="width:100%; background:var(--primary);">作成して入室</button>
+            <input type="password" id="room-del-pass" placeholder="削除用パスワード">
+            <button id="btn-create" style="width:100%;">作成して入室</button>
         </div>
         <div style="width: 95%; max-width: 500px; padding-bottom: 120px;">
             <h3 style="padding-left:10px;">部屋一覧</h3>
@@ -71,7 +84,7 @@
         </div>
     </div>
 
-    <div id="game-page" class="hidden">
+    <div id="game-page" class="hidden" style="display:flex; flex-direction:column; height:100vh; width:100%;">
         <div class="header">
             <div><b id="room-label"></b> <small id="online-count-badge" style="margin-left:8px; background:#e0e7ff; color:var(--primary); padding:2px 8px; border-radius:10px;">👤 <span id="online-count">1</span></small></div>
             <div style="display:flex; gap:8px;">
@@ -123,7 +136,7 @@
         let myName = localStorage.getItem('soulkin_user') || "";
         let activeRoomId = null, mode = 'pen', activeLayer = "1", roomLayers = ["1"], undoStack = [];
 
-        // --- 認証 ---
+        // 認証
         window.onload = () => { if(myName) loginSuccess(myName); };
         document.getElementById('btn-action').onclick = async () => {
             const n = document.getElementById('username').value.trim(), p = document.getElementById('password').value.trim();
@@ -140,17 +153,17 @@
         }
         document.getElementById('btn-logout').onclick = () => { localStorage.removeItem('soulkin_user'); location.reload(); };
 
-        // --- ロビー ---
+        // 部屋
         function loadRooms() {
             onSnapshot(query(collection(db,"rooms"), orderBy("createdAt","desc")), snap => {
                 const list = document.getElementById('room-list'); list.innerHTML = "";
                 snap.forEach(d => {
                     const r = d.data();
                     const div = document.createElement('div'); div.className = "room-card";
-                    div.innerHTML = `<div class="room-info"><b>${r.name}</b><br><small>${r.w}x${r.h} (Host: ${r.host})</small></div>
+                    div.innerHTML = `<div class="room-info"><b>${r.name}</b><br><small>${r.w}x${r.h}</small></div>
                         <div style="display:flex; gap:8px;">
                             <button class="btn-outline" onclick="window.joinRoom('${d.id}','${r.name}',${r.w},${r.h},'${r.host}')">入室</button>
-                            <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
+                            <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red;">🗑️</button>
                         </div>`;
                     list.appendChild(div);
                 });
@@ -159,13 +172,20 @@
         window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); } };
 
         document.getElementById('btn-create').onclick = async () => {
-            const n = document.getElementById('room-name').value, w = document.getElementById('room-w').value, h = document.getElementById('room-h').value, dp = document.getElementById('room-del-pass').value;
+            const n = document.getElementById('room-name').value;
+            let w = parseInt(document.getElementById('room-w').value);
+            let h = parseInt(document.getElementById('room-h').value);
+            const dp = document.getElementById('room-del-pass').value;
+            
+            // バリデーション
+            w = Math.max(1, Math.min(800, w || 400));
+            h = Math.max(1, Math.min(800, h || 600));
+
             if(!n || !dp) return alert("部屋名と削除パスは必須です");
-            const d = await addDoc(collection(db,"rooms"), {name:n, w:Number(w), h:Number(h), delPass:dp, host:myName, createdAt:Date.now()});
+            const d = await addDoc(collection(db,"rooms"), {name:n, w, h, delPass:dp, host:myName, createdAt:Date.now()});
             window.joinRoom(d.id, n, w, h, myName);
         };
 
-        // --- お絵描き ---
         const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
         let drawing = false, lx, ly;
 
@@ -180,11 +200,11 @@
             set(pRef, true); onDisconnect(pRef).remove();
             
             onValue(ref(rtdb, `draws/${id}`), snap => {
-                ctx.clearRect(0,0,w,h);
+                ctx.clearRect(0,0,canvas.width,canvas.height);
                 const data = snap.val() || {}, all = [], layersFound = [];
                 Object.keys(data).forEach(lid => {
                     layersFound.push(lid);
-                    Object.keys(data[lid]).forEach(kid => { if(data[lid][kid].x1) all.push({...data[lid][kid], lid, kid}); });
+                    Object.keys(data[lid]).forEach(kid => { if(data[lid][kid].x1 !== undefined) all.push({...data[lid][kid], lid, kid}); });
                 });
                 all.sort((a,b) => a.lid.localeCompare(b.lid, undefined, {numeric:true})).forEach(d => {
                     ctx.beginPath(); ctx.strokeStyle = d.c; ctx.lineWidth = d.s; ctx.lineCap = "round";
@@ -214,16 +234,24 @@
             const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
             return [(cx - rect.left) * (canvas.width / rect.width), (cy - rect.top) * (canvas.height / rect.height)];
         };
-        const start = (e) => { drawing = true; [lx, ly] = getPos(e); undoStack.push([]); };
+        
+        const start = (e) => { 
+            if(e.touches && e.touches.length > 1) return; // 2本指以上の時は描画しない（スクロールを優先）
+            drawing = true; [lx, ly] = getPos(e); undoStack.push([]); 
+        };
         const move = (e) => {
-            if(!drawing) return; const [x,y] = getPos(e);
+            if(!drawing || (e.touches && e.touches.length > 1)) return;
+            const [x,y] = getPos(e);
             const c = mode==='eraser' ? '#ffffff' : document.getElementById('color-picker').value;
             const r = push(ref(rtdb, `draws/${activeRoomId}/${activeLayer}`), {x1:lx, y1:ly, x2:x, y2:y, c, s:document.getElementById('size-range').value});
             undoStack[undoStack.length-1].push({l:activeLayer, k:r.key}); [lx,ly] = [x,y];
             if(e.cancelable) e.preventDefault();
         };
+        
         canvas.addEventListener('mousedown', start); window.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing=false);
-        canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move, {passive:false}); canvas.addEventListener('touchend', () => drawing=false);
+        canvas.addEventListener('touchstart', start, {passive: true}); 
+        canvas.addEventListener('touchmove', move, {passive: false}); 
+        canvas.addEventListener('touchend', () => drawing=false);
 
         document.getElementById('btn-pen').onclick = () => { mode='pen'; updateBtn('btn-pen'); };
         document.getElementById('btn-eraser').onclick = () => { mode='eraser'; updateBtn('btn-eraser'); };
