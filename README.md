@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - User List</title>
+    <title>Soulkin Paint - Security Fixed</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -96,7 +96,7 @@
 
         <div class="toolbar-wrapper">
             <div id="stamp-menu" class="hidden">
-                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">👎</span><span class="stamp-option">🙏</span>
+                <span class="stamp-option">👍</span><span class="stamp-option">😊</span><span class="stamp-option">❤️</span><span class="stamp-option">😲</span><span class="stamp-option">🎨</span><span class="stamp-option">🙏</span>
             </div>
             <div class="toolbar-scroll">
                 <button id="btn-lock" class="tool-btn hidden" title="部屋をロック/解除">🔓</button>
@@ -144,14 +144,25 @@
                 snap.forEach(d => {
                     const r = d.data();
                     const div = document.createElement('div'); div.className = "room-card";
-                    div.innerHTML = `<div><b>${r.joinPass ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
+                    div.innerHTML = `<div><b>${(r.joinPass && r.joinPass.trim() !== "") ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
                         <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass || ""}')">入室</button>
                         <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="color:red; border:none; background:none; font-size:20px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
         }
-        window.tryJoin = (id, n, w, h, host, jp) => { if(jp !== "" && prompt("パスワード") !== jp) return alert("違うよ"); window.joinRoom(id, n, w, h, host); };
+        
+        // パスワードチェックの修正
+        window.tryJoin = (id, n, w, h, host, jp) => { 
+            // 部屋にパスワードが設定されている場合（空文字でない場合）
+            if (jp && jp.trim() !== "") {
+                const input = prompt("この部屋はパスワードが必要です：");
+                if (input === null) return; // キャンセルされたら何もしない
+                if (input !== jp) return alert("パスワードが違います");
+            }
+            window.joinRoom(id, n, w, h, host); 
+        };
+
         window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); remove(ref(rtdb, `rooms/${id}`)); } };
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
@@ -179,7 +190,6 @@
             set(ref(rtdb, `rooms/${id}/users/${myName}`), true);
             onDisconnect(ref(rtdb, `rooms/${id}/users/${myName}`)).remove();
 
-            // オンラインユーザー管理
             onValue(ref(rtdb, `rooms/${id}/users`), snap => {
                 const data = snap.val() || {};
                 onlineUsers = Object.keys(data);
@@ -213,7 +223,6 @@
             });
         };
 
-        // 人数バッジクリックでユーザー一覧表示
         document.getElementById('online-count-badge').onclick = () => {
             alert("現在入室中のメンバー:\n・" + onlineUsers.join("\n・"));
         };
