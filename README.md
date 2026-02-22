@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Soulkin Paint - Fixed</title>
+    <title>Soulkin Paint - Private Rooms</title>
     <style>
         :root { --primary: #6366f1; --danger: #f43f5e; --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
@@ -17,12 +17,10 @@
 
         .header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index: 100; box-sizing: border-box; }
         
-        /* 部屋リストのレイアウト固定 */
         #room-list { width: 95%; max-width: 500px; padding: 10px 0 120px 0; }
         .room-card { background: white; margin-bottom: 12px; padding: 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .room-info { flex: 1; }
 
-        /* 拡大縮小エリア：transitionを消してレスポンスを向上 */
         #canvas-wrap { width: 100%; overflow: auto; display: flex; justify-content: center; align-items: center; background: #cbd5e1; flex-grow: 1; position: relative; }
         #canvas-container { transform-origin: center; display: flex; justify-content: center; align-items: center; }
         #canvas { background: white; box-shadow: 0 4px 25px rgba(0,0,0,0.1); touch-action: none; display: block; flex-shrink: 0; }
@@ -58,10 +56,11 @@
             <h3 style="margin-top:0">新しく部屋を作る</h3>
             <input type="text" id="room-name" placeholder="部屋の名前">
             <div style="display:flex; gap:10px;">
-                <input type="number" id="room-w" value="400" min="1" max="800">
-                <input type="number" id="room-h" value="600" min="1" max="800">
+                <input type="number" id="room-w" value="400" min="100" max="800" placeholder="幅(100-800)">
+                <input type="number" id="room-h" value="600" min="100" max="800" placeholder="高(100-800)">
             </div>
-            <input type="password" id="room-del-pass" placeholder="削除用パスワード">
+            <input type="password" id="room-join-pass" placeholder="入室パスワード (任意)">
+            <input type="password" id="room-del-pass" placeholder="削除用パスワード (必須)">
             <button id="btn-create" style="width:100%;">作成して入室</button>
         </div>
         <div id="room-list"></div>
@@ -142,23 +141,34 @@
                 const list = document.getElementById('room-list'); list.innerHTML = "<h3>部屋一覧</h3>";
                 snap.forEach(d => {
                     const r = d.data();
+                    const isLocked = r.joinPass && r.joinPass !== "";
                     const div = document.createElement('div'); div.className = "room-card";
-                    div.innerHTML = `<div class="room-info"><b>${r.name}</b><br><small>${r.w}x${r.h}</small></div>
-                        <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.joinRoom('${d.id}','${r.name}',${r.w},${r.h},'${r.host}')">入室</button>
+                    div.innerHTML = `<div class="room-info"><b>${isLocked ? '🔒 ' : ''}${r.name}</b><br><small>${r.w}x${r.h}</small></div>
+                        <div style="display:flex; gap:8px;"><button class="btn-outline" onclick="window.tryJoin('${d.id}','${r.name}',${r.w},${r.h},'${r.host}','${r.joinPass || ""}')">入室</button>
                         <button onclick="window.deleteRoom('${d.id}','${r.delPass}')" style="background:none; border:none; color:red; font-size:18px;">🗑️</button></div>`;
                     list.appendChild(div);
                 });
             });
         }
+
+        window.tryJoin = (id, name, w, h, host, correctJoinPass) => {
+            if(correctJoinPass !== "") {
+                const input = prompt("入室パスワードを入力してください");
+                if(input !== correctJoinPass) return alert("パスワードが違います");
+            }
+            window.joinRoom(id, name, w, h, host);
+        };
+
         window.deleteRoom = async (id, correct) => { if(prompt("削除パスワード") === correct) { await deleteDoc(doc(db,"rooms",id)); remove(ref(rtdb,`draws/${id}`)); } };
         
         document.getElementById('btn-create').onclick = async () => {
             const n = document.getElementById('room-name').value;
             let w = Math.max(100, Math.min(800, parseInt(document.getElementById('room-w').value) || 400));
             let h = Math.max(100, Math.min(800, parseInt(document.getElementById('room-h').value) || 600));
+            const jp = document.getElementById('room-join-pass').value;
             const dp = document.getElementById('room-del-pass').value;
-            if(!n || !dp) return alert("入力不足");
-            const d = await addDoc(collection(db,"rooms"), {name:n, w, h, delPass:dp, host:myName, createdAt:Date.now()});
+            if(!n || !dp) return alert("部屋名と削除パスは必須です");
+            const d = await addDoc(collection(db,"rooms"), {name:n, w, h, joinPass:jp, delPass:dp, host:myName, createdAt:Date.now()});
             window.joinRoom(d.id, n, w, h, myName);
         };
 
@@ -204,18 +214,13 @@
         document.getElementById('zoom-label').onclick = () => updateZoom(1.0);
 
         window.addEventListener('wheel', (e) => {
-            if (activeRoomId && e.ctrlKey) {
-                e.preventDefault();
-                updateZoom(scale + (e.deltaY > 0 ? -0.1 : 0.1));
-            }
+            if (activeRoomId && e.ctrlKey) { e.preventDefault(); updateZoom(scale + (e.deltaY > 0 ? -0.1 : 0.1)); }
         }, { passive: false });
 
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            } else if (e.touches.length === 1) {
-                start(e);
-            }
+            } else if (e.touches.length === 1) { start(e); }
         }, { passive: true });
 
         canvas.addEventListener('touchmove', (e) => {
@@ -224,8 +229,7 @@
                 if (initialDist > 0) updateZoom(scale * (dist / initialDist));
                 initialDist = dist;
             } else if (e.touches.length === 1 && drawing) {
-                move(e);
-                if(e.cancelable) e.preventDefault();
+                move(e); if(e.cancelable) e.preventDefault();
             }
         }, { passive: false });
 
@@ -233,7 +237,6 @@
             const rect = canvas.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
-            // ズームの影響を考慮して物理座標を論理座標に変換
             return [(cx - rect.left) * (canvas.width / rect.width), (cy - rect.top) * (canvas.height / rect.height)];
         };
 
